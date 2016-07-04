@@ -13,7 +13,7 @@ using namespace std;
 template<typename T>
 struct IsTokenType
     : std::conditional<
-      std::is_enum<T>::value,
+      std::is_same<T, TokenType>::value,
       std::true_type,
       std::false_type>::type {};
 
