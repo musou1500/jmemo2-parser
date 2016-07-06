@@ -26,6 +26,7 @@ typedef struct Music {
     int level;
     int offset;
     int difficulty;
+    vector<wstring> flags;
     unordered_map<int, int> bpmChanges;
     Music()
         : title(L""),

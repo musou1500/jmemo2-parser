@@ -137,9 +137,8 @@ bool Lexer::initWithString(wstring input) {
                 break;
             }
         }
-    }
 
-    _nextTokenIterator = _tokens.begin();
+    }
 
     return _hasError;
 };
