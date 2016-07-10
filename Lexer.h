@@ -62,6 +62,8 @@ public:
     shared_ptr<Token> curToken() {
         return _tokens[_curTokenIndex];
     }
+
+    int getCurTokenIndex() { return _curTokenIndex; };
     void backTrack(int i) {
         if (i >= 0 && i <= static_cast<int>(_tokens.size()) - 1) {
             _curTokenIndex = i;

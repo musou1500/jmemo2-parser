@@ -7,6 +7,7 @@
 #include <string>
 #include <wchar.h>
 #include <regex>
+#include <unordered_map>
 #include "Lexer.h"
 #include "Token.h"
 
@@ -21,10 +22,21 @@ void Jmemo2Parser::initWithString(string source) {
     
     // 構文解析
     while(true) {
+        shared_ptr<Token> curToken = _lexer.curToken();
         if (_state.isPreamble) {
-            _state.isPreamble = parsePreamble();
-        } else if ( ! parseMusic()){
-            break;
+            bool matched = false;
+            if (curToken->is(TokenType::IDENTIFIER)) {
+                matched = parseAssign();
+            } else if (curToken->is(TokenType::COMMAND)) {
+                matched = parseCommand();
+            }
+            _state.isPreamble = matched;
+        } else if (curToken->is(TokenType::LABEL)) {
+            parseLabel();
+        } else if (curToken->is(TokenType::IDENTIFIER)) {
+            if (!parseAssign() && !parseMusic()) {
+                break;
+            }
         }
     }
 };
@@ -34,11 +46,9 @@ void Jmemo2Parser::initWithFileName(string filename) {
     istreambuf_iterator<char> iter(ifs), iter_end;
     initWithString(string(iter, iter_end));
 };
-
-
-bool Jmemo2Parser::parsePreamble() {
-    // プリアンブル内ではコマンドか代入のみ許可
-    return (parseAssign() || parseCommand());
+bool Jmemo2Parser::parseLabel() {
+    MatchResult matchRes;
+    return _lexer.matchOrBack(matchRes, TokenType::LABEL);
 };
 
 bool Jmemo2Parser::parseMusic() {

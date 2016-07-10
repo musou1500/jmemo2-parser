@@ -41,6 +41,7 @@ public:
     TokenType getType() { return _type; };
     virtual wstring getValue() { return _value; };
     Position getPosition() { return _position; };
+    bool is(TokenType type) { return (_type == type); };
 private:
     TokenType _type;
     Position _position;

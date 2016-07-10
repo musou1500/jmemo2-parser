@@ -72,10 +72,9 @@ bool Lexer::initWithString(wstring input) {
                         advance(it, number.size());
                     } else {
                         wstring str = wstring(&*it, 1);
-                        Token token(tokenPos, TokenType::LITERAL, str);
-                        shared_ptr<Literal> literal(
-                            new Literal(tokenPos, str));
-                        _tokens.push_back(static_pointer_cast<Token>(literal));
+                        shared_ptr<Token> token(
+                            new Token(tokenPos, TokenType::IDENTIFIER, str));
+                        _tokens.push_back(static_pointer_cast<Token>(token));
                         advance(it, 1);
                     }
                 } else {
@@ -89,7 +88,7 @@ bool Lexer::initWithString(wstring input) {
                 if ((*it)== L'-' || ((*it) == L'x' && !isPreamble)) {
                     wstring str(&*it, 1);
                     shared_ptr<Token> token(
-                        new Token(tokenPos, TokenType::IDENTIFIER_EMPTY, str));
+                        new Token(tokenPos, TokenType::IDENTIFIER, str));
                     _tokens.push_back(token);
                     advance(it, 1);
                 } else if (regex_match(&*it, wregex(L"[a-g]")) && !isPreamble) {

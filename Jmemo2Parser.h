@@ -2,6 +2,7 @@
 #define JMEMO2PARSER_H_
 #include <string>
 #include <vector>
+#include <array>
 #include <unordered_map>
 #include "Lexer.h"
 
@@ -40,9 +41,11 @@ typedef struct Music {
 typedef struct Note {
     int justTime;
     int panelIndex;
+    int duration;
     Note() 
         : justTime(0),
-        panelIndex(0) {};
+        panelIndex(0),
+        duration(0) {};
 } Note;
 
 class Jmemo2Parser {
@@ -52,12 +55,12 @@ public:
     void initWithFileName(string fileName);
     Music getMusic() { return _music; };
     vector<Note> getNotes() { return _notes; };
-    bool parsePreamble();
+    bool parseLabel();
     bool parseCommand();
     bool parseAssign();
     bool parseMusic();
 private:
-    vector<Note>_notes;
+    vector<Note> _notes;
     Music _music;
     Lexer _lexer;
     ParserState _state;
