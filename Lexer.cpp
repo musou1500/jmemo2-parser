@@ -28,7 +28,7 @@ bool Lexer::initWithString(wstring input) {
         // 行の最初の文字が"1-0"または"x"だった場合、譜面行として字句解析を行う
         if (isPreamble) {
             wstring firstStr = line.substr(0, 1);
-            bool isnum = regex_match(firstStr, wregex(L"[0-9]"));
+            bool isnum = regex_match(firstStr, wregex(L"[1-9a-g]"));
             isPreamble = !(isnum || firstStr == L"x");
         }
         
@@ -85,13 +85,13 @@ bool Lexer::initWithString(wstring input) {
                 }
             } else if (regex_match(wstring(&*it, 1), wregex(L"[a-zA-Z0-9-_]"))){
                 Token::Position tokenPos(i, distance(line.begin(), it));
-                if ((*it)== L'-' || ((*it) == L'x' && !isPreamble)) {
+                if (((*it) == L'-' || ((*it)) == L'x') && !isPreamble) {
                     wstring str(&*it, 1);
                     shared_ptr<Token> token(
                         new Token(tokenPos, TokenType::IDENTIFIER, str));
                     _tokens.push_back(token);
                     advance(it, 1);
-                } else if (regex_match(&*it, wregex(L"[a-g]")) && !isPreamble) {
+                } else if (regex_match(wstring(&*it, 1), wregex(L"[a-g]")) && !isPreamble) {
                     wstring str(&*it, 1);
                     shared_ptr<Token> token(
                         new Token(tokenPos, TokenType::IDENTIFIER, str));

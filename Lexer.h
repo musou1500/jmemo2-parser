@@ -41,6 +41,9 @@ public:
     };
 
     bool matchOrBack(MatchResult &matchResult, TokenType a) {
+        if (matchResult.backTrackTo < 0) {
+            matchResult.backTrackTo = _curTokenIndex;
+        }
         shared_ptr<Token> token = nextToken();
         if (token->getType() == a) {
             matchResult.tokens.push_back(token);
@@ -50,7 +53,22 @@ public:
             return false;
         }
     }
-    
+    bool repeatOrBack(MatchResult &matchRes, TokenType a, int minTime, bool exact) {
+        while (true) {
+            if (!matchOrBack(matchRes, a)) {
+                break;
+            } else {
+                matchRes.backTrackTo++;
+            }
+        }
+        
+        if (exact) {
+            return (matchRes.tokens.size() == minTime);
+        } else {
+            return (matchRes.tokens.size() >= minTime);
+        }
+    };
+
     shared_ptr<Token> nextToken() {
         if (_curTokenIndex > static_cast<int>(_tokens.size()) - 1) {
             return nullptr;

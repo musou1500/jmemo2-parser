@@ -13,9 +13,12 @@ enum class Difficulty {
     ADVANCED,
     EXTREAM
 };
+
 typedef struct ParserState {
     int currentTime;
     bool isPreamble;
+    vector<pair<int, int>> rhythmBuffer;
+    vector<pair<int, int>> placementBuffer;
     ParserState():currentTime(0), isPreamble(true) {};
 } ParserState;
 
@@ -28,7 +31,7 @@ typedef struct Music {
     int offset;
     int difficulty;
     vector<wstring> flags;
-    unordered_map<int, int> bpmChanges;
+    vector<pair<int, int>> bpmChanges;
     Music()
         : title(L""),
         artist(L""),
@@ -59,6 +62,8 @@ public:
     bool parseCommand();
     bool parseAssign();
     bool parseMusic();
+
+    void flushBuffer();
 private:
     vector<Note> _notes;
     Music _music;

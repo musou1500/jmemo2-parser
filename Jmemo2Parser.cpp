@@ -1,6 +1,7 @@
 #include "Jmemo2Parser.h"
 #include <iostream>
 #include <fstream>
+#include <functional>
 #include <locale>
 #include <codecvt>
 #include <vector>
@@ -8,6 +9,7 @@
 #include <wchar.h>
 #include <regex>
 #include <unordered_map>
+#include <random>
 #include "Lexer.h"
 #include "Token.h"
 
@@ -23,6 +25,9 @@ void Jmemo2Parser::initWithString(string source) {
     // 構文解析
     while(true) {
         shared_ptr<Token> curToken = _lexer.curToken();
+        if (curToken == nullptr) {
+            break;
+        }
         if (_state.isPreamble) {
             bool matched = false;
             if (curToken->is(TokenType::IDENTIFIER)) {
@@ -39,6 +44,7 @@ void Jmemo2Parser::initWithString(string source) {
             }
         }
     }
+    flushBuffer();
 };
 
 void Jmemo2Parser::initWithFileName(string filename) {
@@ -52,8 +58,103 @@ bool Jmemo2Parser::parseLabel() {
 };
 
 bool Jmemo2Parser::parseMusic() {
-    return false;
+    MatchResult matchPlacement;
+
+    // 配置定義
+    bool isPlacement = _lexer.matchOrBack(
+            matchPlacement,
+            TokenType::IDENTIFIER,
+            TokenType::IDENTIFIER,
+            TokenType::IDENTIFIER,
+            TokenType::IDENTIFIER);
+    if (!isPlacement) {
+        return false;
+    }
+
+    // リズム定義
+    auto isDelimitorFunc = [this] (MatchResult matchRes){
+        bool res =  _lexer.matchOrBack(matchRes, TokenType::DELIMITER);
+        return res;
+    };
+    bool isRhythm = true;
+    MatchResult matchRhythm;
+    if(!isDelimitorFunc(matchRhythm)
+        || !_lexer.repeatOrBack(matchRhythm, TokenType::IDENTIFIER, 4, false)
+        || !isDelimitorFunc(matchRhythm)) {
+        isRhythm = false;
+    }
+
+    if (isRhythm) {
+        float currentBpm = static_cast<float>(_music.bpmChanges.back().second);
+        
+        // 時間の単位はミリ秒で統一する
+        int timePerUnit = 60 * 1000 / currentBpm / (matchRhythm.tokens.size());
+        for(auto token : matchRhythm.tokens) {
+            if (token->getValue() == L"1") {
+                flushBuffer();
+            }
+
+            if (token->getValue() != L"-") {
+                // token->getValue() からintへ変換しなければならない
+                int noteOrder = 0;
+                vector<wstring> orderIdents{
+                    L"1", L"2", L"3", L"4",
+                    L"5", L"6", L"7", L"8",
+                    L"9", L"a", L"b", L"c",
+                    L"d", L"e", L"f", L"g"};
+                auto it = find(orderIdents.begin(), orderIdents.end(), token->getValue());
+                if (it != orderIdents.end()) {
+                    noteOrder = distance(orderIdents.begin(), it);
+                }
+                pair<int, int> rhythm(noteOrder, _state.currentTime);
+                _state.rhythmBuffer.push_back(rhythm);
+            }
+            _state.currentTime += timePerUnit;
+        }
+    }
+
+    // バッファ処理
+    static int measureIndex = 0;
+    for(int i = 0; i < matchPlacement.tokens.size(); i++) {
+        auto token = matchPlacement.tokens[i];
+        vector<wstring> orderIdents{
+           L"1", L"2", L"3", L"4",
+           L"5", L"6", L"7", L"8",
+           L"9", L"a", L"b", L"c",
+           L"d", L"e", L"f", L"g"};
+        auto it = find(orderIdents.begin(), orderIdents.end(), token->getValue());
+
+        int placementOrder = 0;
+        if (it != orderIdents.end() && token->getValue() != L"x") {
+            placementOrder = distance(orderIdents.begin(), it);
+            int panelIndex = 4 * (measureIndex % 4) + i;
+            pair<int, int> placement(placementOrder, panelIndex);
+            _state.placementBuffer.push_back(placement);
+        }
+    }
+    measureIndex++;
+
+    return (isPlacement || isRhythm);
 }
+
+void Jmemo2Parser::flushBuffer() {
+   auto& placementBuff = _state.placementBuffer;
+   auto& rhythmBuff = _state.rhythmBuffer;
+   sort(placementBuff.begin(), placementBuff.end(), [](pair<int, int> a, pair<int, int> b) {
+       return (a.first < b.first);
+   });
+   for(auto placement : placementBuff) {
+       auto rhythm = rhythmBuff[placement.first];
+       Note note;
+       note.duration = 0;
+       note.justTime = rhythm.second;
+       note.panelIndex = placement.second;
+       _notes.push_back(note);
+   }
+   // バッファをクリア
+   _state.rhythmBuffer.clear();
+   _state.placementBuffer.clear();
+};
 
 bool Jmemo2Parser::parseAssign() {
     // 変数への代入
@@ -69,7 +170,10 @@ bool Jmemo2Parser::parseAssign() {
         wstring name = matchedTokens[0]->getValue();
         shared_ptr<Literal> literal = static_pointer_cast<Literal>(matchedTokens[2]);
         if (name == L"t" && literal->getValueType() == LiteralType::NUMBER) {
-            _music.bpmChanges[_state.currentTime] = stoi(literal->getValue());
+            pair<int, int> bpmChange;
+            bpmChange.first = _state.currentTime;
+            bpmChange.second = stoi(literal->getValue());
+            _music.bpmChanges.push_back(bpmChange);
         } else if (name == L"m" && literal->getValueType() == LiteralType::STRING) {
             _music.musicFilePath = literal->getValue();
         } else if (name == L"o" && literal->getValueType() == LiteralType::NUMBER) {
