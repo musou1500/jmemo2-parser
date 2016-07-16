@@ -25,7 +25,7 @@ typedef struct MatchResult {
 
 class Lexer {
 public:
-    Lexer() : _input(L""), _hasError(false), _curTokenIndex(0){};
+    Lexer() : _input(L""), _hasError(false), _curTokenIndex(0), _reachedTheEnd(false){};
     
     bool initWithString(wstring input);
     bool hasError() { return _hasError; };
@@ -45,7 +45,7 @@ public:
             matchResult.backTrackTo = _curTokenIndex;
         }
         shared_ptr<Token> token = nextToken();
-        if (token->getType() == a) {
+        if (token && token->getType() == a) {
             matchResult.tokens.push_back(token);
             return true;
         } else {
@@ -70,7 +70,8 @@ public:
     };
 
     shared_ptr<Token> nextToken() {
-        if (_curTokenIndex > static_cast<int>(_tokens.size()) - 1) {
+        if (_curTokenIndex + 1 >= _tokens.size()) {
+			_reachedTheEnd = true;
             return nullptr;
         } else {
             return _tokens[_curTokenIndex++];
@@ -78,12 +79,15 @@ public:
     }
 
     shared_ptr<Token> curToken() {
-        return _tokens[_curTokenIndex];
+		if (_reachedTheEnd) {
+			return nullptr;
+		}
+		return _tokens[_curTokenIndex];
     }
 
     int getCurTokenIndex() { return _curTokenIndex; };
-    void backTrack(int i) {
-        if (i >= 0 && i <= static_cast<int>(_tokens.size()) - 1) {
+    void backTrack(unsigned int i) {
+        if (i < _tokens.size()) {
             _curTokenIndex = i;
         }
     }
@@ -101,7 +105,8 @@ private:
 
     wstring _input;
     vector<shared_ptr<Token>> _tokens;
+	bool _reachedTheEnd;
     bool _hasError;
-    int _curTokenIndex;
+    unsigned int _curTokenIndex;
 };
 #endif

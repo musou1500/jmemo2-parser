@@ -27,7 +27,7 @@ void Jmemo2Parser::initWithString(string source) {
         shared_ptr<Token> curToken = _lexer.curToken();
         if (curToken == nullptr) {
             break;
-        }
+		}
         if (_state.isPreamble) {
             bool matched = false;
             if (curToken->is(TokenType::IDENTIFIER)) {
@@ -41,7 +41,7 @@ void Jmemo2Parser::initWithString(string source) {
         } else if (curToken->is(TokenType::IDENTIFIER)) {
             if (!parseAssign() && !parseMusic()) {
                 break;
-            }
+			}
         }
     }
     flushBuffer();
